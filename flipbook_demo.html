@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>11010通識策展課程小書</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 10px;
+            background: linear-gradient(135deg, #2c3e50 0%, #011929 100%);
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        .book-container {
+            perspective: 1500px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .book {
+            width: auto;
+            height: auto;
+            max-width: 95vw;
+            max-height: 75vh;
+            position: relative;
+            transform-style: preserve-3d;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            border-radius: 12px;
+            overflow: visible;
+        }
+
+        .page {
+            position: absolute;
+            width: 50%;
+            height: 100%;
+            background: white;
+            border: 2px solid #ddd;
+            transform-origin: left center;
+            transform-style: preserve-3d;
+            transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            cursor: pointer;
+            overflow: hidden;
+            border-radius: 8px;
+        }
+
+        .page.left {
+            left: 0;
+            border-radius: 8px 0 0 8px;
+        }
+
+        .page.right {
+            right: 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .page.cover {
+            right: 0;
+            transform-origin: left center;
+        }
+
+        .page.back-cover {
+            left: 0;
+            border-radius: 8px 0 0 8px;
+        }
+
+        /* 封面背面樣式 */
+        .page-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            transform: rotateY(180deg);
+        }
+
+        .page-front {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+        }
+
+        .page-content {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #f8f9fa;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .page-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .page-number {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            backdrop-filter: blur(5px);
+        }
+
+        .loading-placeholder {
+            width: 80%;
+            height: 80%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #666;
+            background: linear-gradient(45deg, #f0f0f0, #e8e8e8);
+            border-radius: 12px;
+            border: 2px dashed #ccc;
+        }
+
+        .loading-text {
+            margin-top: 15px;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        /* 翻頁動畫 */
+        .page.flipped {
+            transform: rotateY(-180deg);
+        }
+
+        .page.flipping {
+            z-index: 1000 !important;
+        }
+
+        /* 確保翻過的封面不會遮擋其他頁面 */
+        .page.cover.flipped:not(.flipping) {
+            z-index: -1 !important;
+        }
+
+        /* 控制按鈕 */
+        .controls {
+            position: absolute;
+            bottom: -65px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 1000;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.95);
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:hover:not(:disabled) {
+            background: white;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* 頁面指示器 */
+        .page-indicator {
+            position: absolute;
+            top: -65px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+
+        /* 全螢幕按鈕 */
+        .fullscreen-btn {
+            position: absolute;
+            top: -65px;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 16px;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+        }
+
+        .fullscreen-btn:hover {
+            background: white;
+            transform: scale(1.1);
+        }
+
+        /* 響應式設計 */
+        @media (max-width: 800px) {
+            .book {
+                max-width: 98vw !important;
+                max-height: 70vh !important;
+            }
+            
+            .controls {
+                bottom: -75px;
+                gap: 15px;
+            }
+            
+            .btn {
+                padding: 8px 16px;
+                font-size: 12px;
+            }
+            
+            .page-indicator {
+                font-size: 12px;
+                padding: 6px 12px;
+                top: -55px;
+            }
+            
+            .fullscreen-btn {
+                top: -55px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .book {
+                max-width: 98vw !important;
+                max-height: 65vh !important;
+            }
+            
+            .controls {
+                bottom: -70px;
+                gap: 12px;
+            }
+            
+            .btn {
+                padding: 8px 14px;
+                font-size: 11px;
+            }
+            
+            .page-indicator {
+                font-size: 11px;
+                padding: 5px 10px;
+                top: -50px;
+            }
+            
+            .fullscreen-btn {
+                top: -50px;
+                width: 35px;
+                height: 35px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="book-container">
+        <div class="page-indicator">
+            <span id="currentPage">1</span> / <span id="totalPages">0</span>
+        </div>
+        
+        <button class="fullscreen-btn" onclick="toggleFullscreen()" title="全螢幕 (按F鍵)">
+            ⛶
+        </button>
+        
+        <div class="book" id="book">
+            <!-- 頁面會由 JavaScript 動態生成 -->
+        </div>
+
+        <div class="controls">
+            <button class="btn" id="prevBtn" onclick="previousPage()">← 上一頁</button>
+            <button class="btn" id="resetBtn" onclick="resetBook()">重新開始</button>
+            <button class="btn" id="nextBtn" onclick="nextPage()">下一頁 →</button>
+        </div>
+    </div>
+
+    <script>
+        // 圖片設定 - 自動生成 2.jpg 到 45.jpg
+        function generateImageList() {
+            const images = [];
+            for (let i = 2; i <= 45; i++) {
+                images.push(`images/${i}.png`);
+            }
+            return images;
+        }
+
+        const imageList = generateImageList();
+        console.log('圖片清單:', imageList); // 除錯用
+
+        let currentSpread = 0; // 當前展開頁（雙頁）
+        let pages = [];
+        let isAnimating = false;
+        const book = document.getElementById('book');
+        const currentPageSpan = document.getElementById('currentPage');
+        const totalPagesSpan = document.getElementById('totalPages');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const resetBtn = document.getElementById('resetBtn');
+
+        // 初始化書本
+        function initBook() {
+            totalPagesSpan.textContent = imageList.length;
+            
+            // 創建封面（右邊）
+            const cover = createPage(imageList[0], 0, 'cover');
+            book.appendChild(cover);
+            pages.push(cover);
+            
+            // 創建內頁（成對出現）
+            for (let i = 1; i < imageList.length - 1; i += 2) {
+                // 左頁
+                if (i < imageList.length - 1) {
+                    const leftPage = createPage(imageList[i], i, 'left');
+                    book.appendChild(leftPage);
+                    pages.push(leftPage);
+                }
+                
+                // 右頁
+                if (i + 1 < imageList.length - 1) {
+                    const rightPage = createPage(imageList[i + 1], i + 1, 'right');
+                    book.appendChild(rightPage);
+                    pages.push(rightPage);
+                }
+            }
+            
+            // 創建封底（左邊）
+            if (imageList.length > 1) {
+                const backCover = createPage(imageList[imageList.length - 1], imageList.length - 1, 'back-cover');
+                book.appendChild(backCover);
+                pages.push(backCover);
+            }
+            
+            updateControls();
+            updatePageVisibility();
+        }
+
+        // 調整書本大小以適應圖片
+        function adjustBookSize(imgWidth, imgHeight) {
+            // 確保圖片是正方形
+            const size = Math.max(imgWidth, imgHeight);
+            
+            const maxWidth = window.innerWidth * 0.95;
+            const maxHeight = window.innerHeight * 0.75;
+            
+            // 書本寬度是兩倍圖片寬度（左右兩頁）
+            const bookWidth = size * 2;
+            const bookHeight = size;
+            
+            // 計算縮放比例
+            const scaleX = maxWidth / bookWidth;
+            const scaleY = maxHeight / bookHeight;
+            const scale = Math.min(scaleX, scaleY, 1);
+            
+            const finalWidth = bookWidth * scale;
+            const finalHeight = bookHeight * scale;
+            
+            book.style.width = finalWidth + 'px';
+            book.style.height = finalHeight + 'px';
+            
+            console.log(`圖片尺寸: ${imgWidth}x${imgHeight}`);
+            console.log(`書本大小調整為: ${finalWidth}x${finalHeight}`);
+        }
+
+        // 創建頁面
+        function createPage(imagePath, pageNumber, position) {
+            const page = document.createElement('div');
+            page.className = `page ${position}`;
+            page.dataset.page = pageNumber;
+            page.dataset.position = position;
+            
+            // 設置 z-index
+            page.style.zIndex = imageList.length - pageNumber;
+            
+            if (position === 'cover') {
+                // 封面有正反兩面
+                // 正面（封面）
+                const frontSide = document.createElement('div');
+                frontSide.className = 'page-front page-content';
+                createPageContent(frontSide, imagePath, pageNumber);
+                page.appendChild(frontSide);
+                
+                // 背面（第二張圖片）
+                if (imageList.length > 1) {
+                    const backSide = document.createElement('div');
+                    backSide.className = 'page-back page-content';
+                    createPageContent(backSide, imageList[1], 1);
+                    page.appendChild(backSide);
+                }
+            } else {
+                // 其他頁面只有一面
+                const pageContent = document.createElement('div');
+                pageContent.className = 'page-content';
+                createPageContent(pageContent, imagePath, pageNumber);
+                page.appendChild(pageContent);
+            }
+            
+            // 點擊事件
+            page.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (isAnimating) return;
+                
+                if (position === 'right' || position === 'cover') {
+                    nextPage();
+                } else if (position === 'left') {
+                    previousPage();
+                }
+            });
+            
+            return page;
+        }
+
+        // 創建頁面內容
+        function createPageContent(container, imagePath, pageNumber) {
+            // 創建載入中的佔位符
+            const placeholder = document.createElement('div');
+            placeholder.className = 'loading-placeholder';
+            placeholder.innerHTML = `
+                <div style="font-size: 32px;">📖</div>
+                <div class="loading-text">載入圖片 ${pageNumber + 1}<br>檔名: ${imagePath.split('/').pop()}</div>
+            `;
+            
+            container.appendChild(placeholder);
+            
+            // 載入圖片
+            const img = new Image();
+            img.onload = function() {
+                img.className = 'page-image';
+                img.alt = `第 ${pageNumber + 1} 頁`;
+                if (placeholder.parentNode) {
+                    container.removeChild(placeholder);
+                }
+                container.appendChild(img);
+                
+                // 當第一張圖片載入完成時，調整書本大小
+                if (pageNumber === 0) {
+                    adjustBookSize(this.naturalWidth, this.naturalHeight);
+                }
+            };
+            
+            img.onerror = function() {
+                placeholder.innerHTML = `
+                    <div style="font-size: 32px;">❌</div>
+                    <div class="loading-text">圖片載入失敗<br><small>${imagePath}</small></div>
+                `;
+                placeholder.style.color = '#e74c3c';
+            };
+            
+            img.src = imagePath;
+            
+            // 添加頁碼
+            const pageNumberDiv = document.createElement('div');
+            pageNumberDiv.className = 'page-number';
+            pageNumberDiv.textContent = `${pageNumber + 1}`;
+            container.appendChild(pageNumberDiv);
+        }
+
+        // 更新頁面可見性
+        function updatePageVisibility() {
+            const maxSpread = Math.ceil((imageList.length - 1) / 2);
+            
+            pages.forEach((page, index) => {
+                const pageNumber = parseInt(page.dataset.page);
+                const position = page.dataset.position;
+                
+                if (currentSpread === 0) {
+                    // 第一個展開：只顯示封面（右邊）
+                    page.style.display = (position === 'cover') ? 'block' : 'none';
+                } else if (currentSpread === maxSpread) {
+                    // 最後一個展開：只顯示封底（左邊）
+                    page.style.display = (position === 'back-cover') ? 'block' : 'none';
+                } else {
+                    // 中間展開：顯示對應的左右頁
+                    const leftPageNumber = currentSpread * 2 - 1;
+                    const rightPageNumber = currentSpread * 2;
+                    
+                    if (position === 'left' && pageNumber === leftPageNumber) {
+                        page.style.display = 'block';
+                    } else if (position === 'right' && pageNumber === rightPageNumber) {
+                        page.style.display = 'block';
+                    } else if (position !== 'cover' && position !== 'back-cover') {
+                        page.style.display = 'none';
+                    }
+                }
+            });
+        }
+
+        // 翻到下一頁
+        function nextPage() {
+            const maxSpread = Math.ceil((imageList.length - 1) / 2);
+            if (currentSpread >= maxSpread || isAnimating) return;
+            
+            isAnimating = true;
+            
+            if (currentSpread === 0) {
+                // 從封面翻到第一個雙頁展開
+                const cover = pages.find(p => p.dataset.position === 'cover');
+                //cover.classList.add('flipping');
+                // 立即改變z-index，避免延遲
+                cover.style.zIndex = -1;
+                
+                setTimeout(() => {
+                    //cover.classList.add('flipped');
+                    currentSpread++;
+                    updatePageVisibility();
+                    updateControls();
+                    
+                    setTimeout(() => {
+                        //cover.classList.remove('flipping');
+                        isAnimating = false;
+                    }, 300);
+                }, 50);
+            } else {
+                // 翻到下一個雙頁展開
+                currentSpread++;
+                updatePageVisibility();
+                updateControls();
+                
+                setTimeout(() => {
+                    isAnimating = false;
+                }, 300);
+            }
+        }
+
+        // 翻到上一頁
+        function previousPage() {
+            if (currentSpread <= 0 || isAnimating) return;
+            
+            isAnimating = true;
+            
+            if (currentSpread === 1) {
+                // 從第一個雙頁展開翻回封面
+                const cover = pages.find(p => p.dataset.position === 'cover');
+                cover.classList.add('flipping');
+                // 立即恢復z-index
+                cover.style.zIndex = imageList.length;
+                
+                setTimeout(() => {
+                    cover.classList.remove('flipped');
+                    currentSpread--;
+                    updatePageVisibility();
+                    updateControls();
+                    
+                    setTimeout(() => {
+                        cover.classList.remove('flipping');
+                        isAnimating = false;
+                    }, 300);
+                }, 50);
+            } else {
+                // 翻到上一個雙頁展開
+                currentSpread--;
+                updatePageVisibility();
+                updateControls();
+                
+                setTimeout(() => {
+                    isAnimating = false;
+                }, 300);
+            }
+        }
+
+        // 重新開始
+        function resetBook() {
+            if (isAnimating) return;
+            
+            isAnimating = true;
+            
+            // 重置所有頁面
+            pages.forEach((page, index) => {
+                page.classList.remove('flipped', 'flipping');
+                // 恢復原始z-index
+                const pageNumber = parseInt(page.dataset.page);
+                page.style.zIndex = imageList.length - pageNumber;
+            });
+            
+            currentSpread = 0;
+            updatePageVisibility();
+            updateControls();
+            
+            setTimeout(() => {
+                isAnimating = false;
+            }, 800);
+        }
+
+        // 更新控制按鈕狀態
+        function updateControls() {
+            const maxSpread = Math.ceil((imageList.length - 1) / 2);
+            prevBtn.disabled = currentSpread === 0;
+            nextBtn.disabled = currentSpread >= maxSpread;
+            
+            // 顯示當前可見的頁面範圍
+            if (currentSpread === 0) {
+                currentPageSpan.textContent = '1 (封面)';
+            } else if (currentSpread === maxSpread) {
+                currentPageSpan.textContent = `${imageList.length} (封底)`;
+            } else {
+                const leftPage = currentSpread * 2;
+                const rightPage = Math.min(currentSpread * 2 + 1, imageList.length - 1);
+                currentPageSpan.textContent = `${leftPage}-${rightPage}`;
+            }
+        }
+
+        // 全螢幕功能
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // 鍵盤控制
+        document.addEventListener('keydown', (e) => {
+            if (isAnimating) return;
+            
+            switch(e.key) {
+                case 'ArrowRight':
+                case ' ':
+                    e.preventDefault();
+                    nextPage();
+                    break;
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    previousPage();
+                    break;
+                case 'Home':
+                    e.preventDefault();
+                    resetBook();
+                    break;
+                case 'f':
+                case 'F':
+                    e.preventDefault();
+                    toggleFullscreen();
+                    break;
+            }
+        });
+
+        // 觸控支援 - 改善版本
+        let startX, startY, startTime;
+
+        document.addEventListener('touchstart', (e) => {
+            if (isAnimating) return;
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            startTime = Date.now();
+        });
+
+        document.addEventListener('touchend', (e) => {
+            if (!startX || !startY || isAnimating) return;
+
+            const endX = e.changedTouches[0].clientX;
+            const endY = e.changedTouches[0].clientY;
+            const diffX = startX - endX;
+            const diffY = startY - endY;
+            const timeDiff = Date.now() - startTime;
+
+            // 確保是快速的水平滑動
+            if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50 && timeDiff < 300) {
+                if (diffX > 0) {
+                    nextPage(); // 向左滑動，下一頁
+                } else {
+                    previousPage(); // 向右滑動，上一頁
+                }
+            }
+
+            startX = null;
+            startY = null;
+            startTime = null;
+        });
+
+        // 初始化
+        initBook();
+        
+        // 窗口大小改變時重新調整書本大小
+        window.addEventListener('resize', () => {
+            if (pages.length > 0) {
+                const firstPageImg = pages[0].querySelector('.page-image');
+                if (firstPageImg && firstPageImg.complete && firstPageImg.naturalWidth > 0) {
+                    adjustBookSize(firstPageImg.naturalWidth, firstPageImg.naturalHeight);
+                }
+            }
+        });
+        
+        // 除錯資訊
+        console.log(`已載入 ${imageList.length} 頁圖片`);
+        console.log('操作說明:');
+        console.log('- 點擊頁面或使用按鈕翻頁');
+        console.log('- 鍵盤: ←→ 方向鍵, 空白鍵下一頁, Home鍵重新開始, F鍵全螢幕');
+        console.log('- 手機: 左右滑動翻頁');
+    </script>
+</body>
+</html>

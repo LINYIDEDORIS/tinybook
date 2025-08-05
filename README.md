@@ -1,3 +1,5 @@
+Demo link [https://linyidedoris.github.io/tinybook/flipbook.html]
+
 ## 介紹
 這是一本記錄了一個策展班的策展經歷與回憶。
 課堂指導老師賴小秋老師帶領了11010策展班的學生進行了藝術家蔡政維老師的展覽布展。

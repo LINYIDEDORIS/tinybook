@@ -1,4 +1,4 @@
-Demo link [https://linyidedoris.github.io/tinybook/flipbook.html]
+[(https://linyidedoris.github.io/tinybook/flipbook_demo.html)]
 
 ## 介紹
 這是一本記錄了一個策展班的策展經歷與回憶。
